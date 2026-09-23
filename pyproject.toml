@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "liuer-bot"
+version = "0.1.0"
+description = "Phase 4B single-channel chat with bounded conversation context"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "discord.py>=2.7.1,<3",
+    "httpx>=0.28,<1",
+    "Pillow>=12.3,<13",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9",
+    "ruff>=0.6,<1",
+]
+
+[project.scripts]
+liuer-bot = "liuer_bot.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+liuer_bot = ["prompts/*.txt"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

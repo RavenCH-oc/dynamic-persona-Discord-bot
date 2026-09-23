@@ -1,0 +1,14 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+data/liuer.sqlite3
+data/liuer.sqlite3-wal
+data/liuer.sqlite3-shm
