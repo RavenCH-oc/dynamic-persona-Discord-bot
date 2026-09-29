@@ -8,6 +8,7 @@ from datetime import datetime
 import discord
 from discord import app_commands
 
+from .discord_nickname import NicknameSynchronizer
 from .nickname_models import (
     NicknameDailyLimitError,
     NicknameError,
@@ -51,10 +52,12 @@ class NicknameCommands:
         *,
         nickname_service: NicknameService,
         status_manager: PersonaStatusManager,
+        nickname_synchronizer: NicknameSynchronizer,
         logger: logging.Logger = LOGGER,
     ) -> None:
         self.nickname_service = nickname_service
         self.status_manager = status_manager
+        self.nickname_synchronizer = nickname_synchronizer
         self._logger = logger
         self.group = NicknameSetCommandGroup(self)
 
@@ -82,19 +85,30 @@ class NicknameCommands:
             )
             return
 
-        warning = False
+        status_warning = False
         try:
             await self.status_manager.sync_current()
         except Exception as exc:
-            warning = True
+            status_warning = True
             self._logger.error(
                 "Nickname status sync failed error_type=%s",
                 type(exc).__name__,
             )
+        try:
+            sync_result = await self.nickname_synchronizer.synchronize(result.version.nickname_text)
+            nickname_warning = not sync_result.succeeded
+        except Exception as exc:
+            nickname_warning = True
+            self._logger.warning(
+                "Discord nickname synchronization failed error_type=%s",
+                type(exc).__name__,
+            )
         message = f"六耳目前的小名已更新為「{result.version.nickname_text}」。"
-        if warning:
+        if status_warning:
             message += " 公開 Persona 狀態訊息稍後才會更新。"
-        await self._respond(interaction, message, ephemeral=warning)
+        if nickname_warning:
+            message += " 但 Discord 顯示名稱同步失敗，請確認六耳是否具有「更改暱稱」權限。"
+        await self._respond(interaction, message, ephemeral=status_warning and not nickname_warning)
 
     async def _respond_error(self, interaction: discord.Interaction, exc: NicknameError) -> None:
         if isinstance(exc, NicknameGlobalCooldownError):

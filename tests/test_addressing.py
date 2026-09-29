@@ -108,3 +108,10 @@ def test_nickname_is_exact_leading_only_and_case_sensitive() -> None:
     assert wrong_case.is_addressed is False
     assert exact.is_addressed is True
     assert exact.address_kind is AddressKind.ACTIVE_NICKNAME
+
+
+def test_discord_server_nickname_is_not_an_independent_address_alias() -> None:
+    # A manually edited Discord display nickname must not enter this policy boundary.
+    assert parse_addressed_message("六耳 你好", active_nickname="伊利亞").is_addressed
+    assert parse_addressed_message("伊利亞 你好", active_nickname="伊利亞").is_addressed
+    assert not parse_addressed_message("管理員改的暱稱 你好", active_nickname="伊利亞").is_addressed

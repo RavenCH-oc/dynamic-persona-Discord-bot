@@ -25,6 +25,7 @@ from .config import (
 from .context_commands import ContextCommands
 from .conversation_models import AuthorKind
 from .conversation_service import ConversationRecordingResponder, ConversationService
+from .discord_nickname import DiscordNicknameSynchronizer
 from .discord_output import split_discord_response
 from .discord_routing import RoutingDecision, RoutingInput, route_input
 from .generation_queue import GenerationQueueClosedError, SerializedGenerationQueue
@@ -81,6 +82,16 @@ class DiscordRuntimeClient(discord.Client):
         self.tree = app_commands.CommandTree(self)
         self._config = config
         self._nickname_service = nickname_service
+        self._nickname_synchronizer = (
+            DiscordNicknameSynchronizer(
+                guild_provider=lambda: getattr(self._chat_channel, "guild", None),
+                bot_user_id_provider=lambda: self.user.id if self.user is not None else None,
+                logger=LOGGER,
+            )
+            if nickname_service is not None
+            else None
+        )
+        self._startup_nickname_reconciled = False
         self._conversation_service = conversation_service
         self._bot_dialogue_service = BotDialogueService()
         self._responder = (
@@ -158,6 +169,7 @@ class DiscordRuntimeClient(discord.Client):
                 self._nickname_commands = NicknameCommands(
                     nickname_service=nickname_service,
                     status_manager=self._persona_status_manager,
+                    nickname_synchronizer=self._nickname_synchronizer,
                     logger=self._logger,
                 )
 
@@ -210,6 +222,19 @@ class DiscordRuntimeClient(discord.Client):
                 "Discord ready bot_user_id=%s configured_chat_channel_count=1",
                 self.user.id,
             )
+        if self._startup_nickname_reconciled:
+            return
+        self._startup_nickname_reconciled = True
+        if self._nickname_service is not None and self._nickname_synchronizer is not None:
+            try:
+                await self._nickname_synchronizer.synchronize(
+                    self._nickname_service.get_active_nickname()
+                )
+            except Exception as exc:
+                self._logger.warning(
+                    "Discord startup nickname reconciliation failed error_type=%s",
+                    type(exc).__name__,
+                )
 
     async def on_message(self, message: discord.Message) -> None:
         metadata = _message_metadata(message)

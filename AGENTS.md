@@ -318,3 +318,13 @@ The following project invariants apply to all future phases:
     automatically substitutes for the other after a failure.
 277. Persona, context, generation queue, and persistence remain independent of
     Venice model role; Phase 7A retains SQLite schema v6.
+278. Active Nickname in SQLite and the in-memory snapshot remains authoritative;
+    the configured guild's own Bot member nickname is presentation-only.
+279. Discord server-nickname sync follows committed Nickname mutation and
+    canonical status-board sync. Its failure never rolls back or repeats the
+    successful domain update or consumes extra quota.
+280. Startup server-nickname reconciliation is best-effort and uses the
+    in-memory Active Nickname, including `None` to clear a server nickname.
+281. There is no background nickname polling or global Discord username edit.
+282. Routing uses only the immutable `六耳` name, in-memory Active Nickname,
+    and supported Bot mention; Discord server nickname is never an alias source.
